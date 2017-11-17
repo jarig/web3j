@@ -21,6 +21,7 @@ public class TransactionReceipt {
     private String to;
     private List<Log> logs;
     private String logsBloom;
+    private String status;
 
     public TransactionReceipt() {
     }
@@ -41,6 +42,16 @@ public class TransactionReceipt {
         this.to = to;
         this.logs = logs;
         this.logsBloom = logsBloom;
+    }
+
+    public boolean hasStatus()
+    {
+        return status != null;
+    }
+
+    public boolean isSuccessfull()
+    {
+        return hasStatus() && status.equals("0x1");
     }
 
     public String getTransactionHash() {
@@ -153,6 +164,15 @@ public class TransactionReceipt {
 
     public void setLogsBloom(String logsBloom) {
         this.logsBloom = logsBloom;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status)
+    {
+        this.status = status;
     }
 
     @Override

@@ -50,7 +50,7 @@ public class Transfer extends ManagedTransaction {
         return send(toAddress, value, unit, gasPrice, GAS_LIMIT);
     }
 
-    private TransactionReceipt send(
+    public TransactionReceipt send(
             String toAddress, BigDecimal value, Convert.Unit unit, BigInteger gasPrice,
             BigInteger gasLimit) throws IOException, InterruptedException,
             TransactionTimeoutException {

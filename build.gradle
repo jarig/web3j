@@ -4,29 +4,10 @@ buildscript {
     repositories {
         mavenCentral()
     }
-    dependencies {
-        classpath 'io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3'
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.4'
-    }
 }
 
-plugins {
-    id "com.jfrog.bintray" version "1.7.3"
-}
-
-apply plugin: 'eclipse'
 apply plugin: 'java'
-// Required for JFrog Artifactory repository
-apply plugin: 'jacoco'
-apply plugin: 'maven-publish'
-
-// Required for Maven Nexus repository
-apply plugin: 'maven'
-apply plugin: 'signing'
-apply plugin: 'idea'
-apply plugin: 'io.codearte.nexus-staging'
-apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'application'
+//apply plugin: 'application'
 //apply plugin: 'checkstyle'  // Recent checkstyle vesions are not JDK 1.6+ compatible
 
 group 'org.web3j'
@@ -38,31 +19,6 @@ targetCompatibility = 1.6
 // We don't want any compiler warnings
 compileJava {
     options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
-}
-compileTestJava {
-    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
-}
-
-jacoco {
-    toolVersion = '0.7.7.201606060606' // See http://www.eclemma.org/jacoco/.
-}
-
-jacocoTestReport {
-    reports {
-        xml.enabled true
-    }
-
-    afterEvaluate {
-        classDirectories = files(classDirectories.files.collect {
-            fileTree(dir: it,
-                    exclude: ['org/web3j/abi/datatypes/generated/**'])
-        })
-    }
-}
-
-ext {
-    ossrhUsername = project.hasProperty('ossrhUsername') ? project.property('ossrhUsername') : ''
-    ossrhPassword = project.hasProperty('ossrhPassword') ? project.property('ossrhPassword') : ''
 }
 
 repositories {
@@ -83,10 +39,6 @@ sourceSets {
     }
 }
 
-configurations {
-    integrationTestCompile.extendsFrom testCompile
-    integrationTestRuntime.extendsFrom testRuntime
-}
 
 dependencies {
     compile 'cz.msebera.android:httpclient:4.4.1.2',
@@ -100,38 +52,9 @@ dependencies {
             'nl.jqno.equalsverifier:equalsverifier:2.1.7'
 }
 
-
-task integrationTest(type: Test) {
-    testClassesDir = sourceSets.integrationTest.output.classesDir
-    classpath = sourceSets.integrationTest.runtimeClasspath
-    outputs.upToDateWhen { false }  // always run integration tests regardless of if up to date
-
-    // view status of integration tests
-    testLogging {
-        events "passed", "skipped", "failed"
-    }
-}
-
-check.dependsOn integrationTest
-integrationTest.mustRunAfter test
-
-tasks.withType(Test) {
-    reports.html.destination = file("${reporting.baseDir}/${name}")
-}
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
-}
-
 task sourcesJar(type: Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource
-}
-
-task testJar(type: Jar) {
-    classifier = 'tests'
-    from sourceSets.test.output
 }
 
 task createProperties(dependsOn: processResources) << {
@@ -157,115 +80,7 @@ classes {
     dependsOn createProperties
 }
 
-//checkstyle {
-//    toolVersion = "7.7"
-//}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-
-            artifact sourcesJar {
-                classifier 'sources'
-            }
-
-            artifact testJar {
-                classifier 'tests'
-            }
-        }
-    }
-}
-
-bintray {
-    user = project.hasProperty('bintrayUser') ? project.property('bintrayUser') : System.getenv('BINTRAY_USER')
-    key = project.hasProperty('bintrayApiKey') ? project.property('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
-    publications = ['mavenJava']
-    publish = true
-    pkg {
-        repo = 'maven'
-        name = 'org.web3j'
-        desc = 'web3j is a lightweight Java library for integration with Ethereum clients'
-        userOrg = 'web3j'
-        licenses = ['Apache-2.0']
-        issueTrackerUrl = 'https://github.com/web3j/web3j/issues'
-        vcsUrl = 'https://github.com/web3j/web3j.git'
-        websiteUrl = 'https://web3j.io'
-        publicDownloadNumbers = true
-    }
-}
-
 
 artifacts {
-    archives sourcesJar, javadocJar, testJar
-}
-
-signing {
-    required { gradle.taskGraph.hasTask('uploadArchives') }  // only execute as part of this task
-    sign configurations.archives
-}
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-            repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-                authentication(
-                        userName: ossrhUsername,
-                        password: ossrhPassword
-                )
-            }
-
-            pom.project {
-                name 'web3j'
-                packaging 'jar'
-                description 'web3j is a lightweight Java library for integration with Ethereum clients'
-                url 'https://web3j.io'
-
-                scm {
-                    connection 'scm:git:https://github.com/web3j/web3j.git'
-                    url 'https://github.com/web3j/web3j.git'
-                }
-
-                licenses {
-                    license {
-                        name 'The Apache License, Version 2.0'
-                        url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id 'conor10'
-                        name 'Conor Svensson'
-                        email 'conor10@gmail.com'
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Build command line library release with target distShadowZip
-mainClassName = 'org.web3j.console.Runner'
-applicationName = 'web3j-android'
-
-
-task release {
-    // remove once integration tests are running as part of the build
-    check.dependsOn.remove(integrationTest)
-
-    dependsOn 'clean'
-    dependsOn 'build'
-    dependsOn 'uploadArchives'
-    dependsOn 'closeAndPromoteRepository'
-    dependsOn 'bintrayUpload'
-
-    tasks.findByName('build').mustRunAfter 'clean'
-
-    tasks.findByName('uploadArchives').mustRunAfter 'build'
-    tasks.findByName('closeAndPromoteRepository').mustRunAfter 'uploadArchives'
-
-    tasks.findByName('bintrayUpload').mustRunAfter 'build'
+    archives sourcesJar
 }

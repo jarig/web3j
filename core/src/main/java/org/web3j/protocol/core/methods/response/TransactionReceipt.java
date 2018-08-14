@@ -48,6 +48,16 @@ public class TransactionReceipt {
         this.logsBloom = logsBloom;
     }
 
+    public boolean hasStatus()
+    {
+        return status != null;
+    }
+
+    public boolean isSuccessfull()
+    {
+        return hasStatus() && status.equals("0x1");
+    }
+
     public String getTransactionHash() {
         return transactionHash;
     }
